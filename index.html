@@ -241,8 +241,8 @@
       <div class="sl big">
         <div class="sl-head"><span class="lbl"><svg class="ic"><use href="#ic-cam"/></svg><span>Common-area cameras analysed</span></span></div>
         <div class="sl-row">
-          <input type="range" id="scope" min="0" max="400" step="1" value="91" aria-label="Common-area cameras analysed">
-          <input type="number" class="spin" id="scopeN" min="0" max="400" step="1" value="91" aria-label="Common-area cameras, exact value">
+          <input type="range" id="scope" min="1" max="400" step="1" value="91" aria-label="Common-area cameras analysed">
+          <input type="number" class="spin" id="scopeN" min="1" max="400" step="1" value="91" aria-label="Common-area cameras, exact value">
         </div>
       </div>
       <div class="allcam">
@@ -274,6 +274,7 @@
           <input type="number" class="spin" id="dwellN" min="0" step="1" value="10" aria-label="Per-person dwell cameras, exact value">
         </div>
       </div>
+      <p class="step-note" id="trackNote"></p>
       <p class="step-note">These three cost the same — about 98 ms per second each, seven times a sampled camera. They run on cameras already counted above, and are placed where the question needs a tracked person rather than a crowd.</p>
     </div>
 
@@ -398,7 +399,7 @@
     <div class="dbody">
       <p><b>Measured, not claimed.</b> The proof of concept ran continuously for three weeks on SM's own test machine, carrying eight cameras: three entrance counts and five per-person dwell, each also producing a heatmap from the same pass. Every figure here comes from timings on that machine.</p>
       <p><b>A planning estimate, not a quotation.</b> It is not a performance guarantee either. Sizing is done per property — an average across an estate sizes nothing, because a flagship mall can carry double the cameras of a typical one.</p>
-      <p><b>Read before ordering.</b> These figures size the production analytics platform. The proof-of-concept software is not that platform and does not reach these camera counts per machine; production stream handling is separate development work that has to be funded before the hardware can be filled.</p>
+      <p><b>Sized for production.</b> These figures describe the production platform, including the stream-handling layer built during implementation. The proof of concept was run to measure processing cost per camera, not at production camera density.</p>
     </div>
   </details>
 
@@ -524,10 +525,15 @@
     var r=$(rangeId), n=$(numId);
     function set(v){
       v=parseInt(v,10); if(isNaN(v)) v=0;
-      v=Math.max(0, v);
-      if(key!=="scope") v=Math.min(v, M.scope); else v=Math.min(v, 400);
+      if(key==="scope"){
+        v=Math.min(400, Math.max(1, v));
+      } else {
+        var others=0;
+        ["count","flow","dwell"].forEach(function(j){ if(j!==key) others+=M[j]; });
+        v=Math.min(Math.max(0, M.scope-others), Math.max(0, v));
+      }
       M[key]=v; r.value=v; n.value=v;
-      if(key==="scope") clampSubs();
+      clampSubs();
       if(!lock) markCustom();
       render();
     }
@@ -539,13 +545,22 @@
 
   var P={};
   function clampSubs(){
+    var budget=M.scope;
     ["count","flow","dwell"].forEach(function(k){
+      if(M[k]>budget) M[k]=budget;
+      budget-=M[k];
       P[k].r.max=String(M.scope); P[k].n.max=String(M.scope);
-      if(M[k]>M.scope){ M[k]=M.scope; P[k].r.value=M.scope; P[k].n.value=M.scope; }
+      P[k].r.value=M[k]; P[k].n.value=M[k];
     });
+    var used=M.count+M.flow+M.dwell, left=M.scope-used;
     $("ofA").textContent="of "+fmt(M.scope);
     $("ofB").textContent="of "+fmt(M.scope);
     $("ofC").textContent="of "+fmt(M.scope);
+    $("trackNote").textContent = used===0
+      ? "None assigned yet. All "+fmt(M.scope)+" cameras are on the sampled pass only."
+      : fmt(used)+" of "+fmt(M.scope)+" cameras tracked continuously · "
+        +fmt(left)+" on the sampled pass only."
+        +(left===0 ? " Every camera is assigned." : "");
   }
 
   var lastPreset="typical";
