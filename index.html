@@ -444,11 +444,13 @@
     if(demand>0&&servers<1)servers=1;
     var gpus=servers*S.perServer, cap=gpus*BUDGET;
     var spare=Math.max(0,cap-demand);
+    var room=Math.max(0, cap*(1-S.headroom/100) - demand);
     var ev=M.scope/S.interval+cont*0.2;
     return {cont:cont,sMs:sMs,cMs:cMs,demand:demand,servers:servers,gpus:gpus,cap:cap,
       util:cap>0?demand/cap:0, spare:spare,
-      spareS:costSampled()>0?Math.floor(spare/costSampled()):0,
-      spareC:costCont()>0?Math.floor(spare/costCont()):0,
+      room:room,
+      spareS:costSampled()>0?Math.floor(room/costSampled()):0,
+      spareC:costCont()>0?Math.floor(room/costCont()):0,
       storeGB:ev*86400*365*S.retention*S.bytes/1e9};
   }
 
@@ -580,6 +582,7 @@
     ["count","flow","dwell"].forEach(function(key){
       M[key]=p[key]; P[key].r.value=p[key]; P[key].n.value=p[key];
     });
+    clampSubs();
     lock=false;
     render();
   }
