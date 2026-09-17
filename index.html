@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="description" content="Hardware sizing model for on-premise mall video analytics, built from measured per-camera processing cost.">
+<style>
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+<title>Mall Analytics Sizing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#F4F6F8; --surface:#FFFFFF; --surface-2:#EEF1F5;
+    --ink:#111720; --muted:#5C6675; --faint:#8A93A1;
+    --line:#E1E5EB; --line-strong:#CBD2DC;
+    --accent:#0B62D6; --accent-soft:#E8F0FD;
+    --ok:#1B7F52; --warn:#A96A0D; --crit:#BE3A2E;
+    --ok-bg:#E4F2EA; --warn-bg:#FBF0DC; --crit-bg:#FAE6E3;
+    --load-s:#9CBEEE; --load-c:#0B62D6;
+    --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --shadow:0 1px 2px rgba(17,23,32,.05), 0 12px 32px -12px rgba(17,23,32,.14);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0A0E14; --surface:#141A22; --surface-2:#1C232D;
+      --ink:#E4E9F0; --muted:#8C96A5; --faint:#6D7787;
+      --line:#242C38; --line-strong:#343E4C;
+      --accent:#5AA0FF; --accent-soft:#16283F;
+      --ok:#4FBE86; --warn:#D9A03F; --crit:#EF7B6D;
+      --ok-bg:#122A1F; --warn-bg:#2C2313; --crit-bg:#2E1815;
+      --load-s:#2F517C; --load-c:#5AA0FF;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 14px 34px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0A0E14; --surface:#141A22; --surface-2:#1C232D;
+    --ink:#E4E9F0; --muted:#8C96A5; --faint:#6D7787;
+    --line:#242C38; --line-strong:#343E4C;
+    --accent:#5AA0FF; --accent-soft:#16283F;
+    --ok:#4FBE86; --warn:#D9A03F; --crit:#EF7B6D;
+    --ok-bg:#122A1F; --warn-bg:#2C2313; --crit-bg:#2E1815;
+    --load-s:#2F517C; --load-c:#5AA0FF;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 14px 34px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;margin:0;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:660px;margin:0 auto;padding-inline:18px;padding-block:34px 64px}
+  h1,h2{margin:0;text-wrap:balance}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .eyebrow{font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* masthead */
+  .masthead{text-align:center;margin-bottom:22px}
+  .masthead h1{font-size:clamp(23px,5vw,31px);font-weight:600;letter-spacing:-.022em;line-height:1.15}
+  .masthead p{color:var(--muted);font-size:14px;margin:9px auto 0;max-width:46ch}
+
+  /* the card */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+  .step{padding:20px 22px;border-bottom:1px solid var(--line)}
+  .step-head{display:flex;align-items:baseline;gap:9px;margin-bottom:14px}
+  .step-n{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:3px;padding:2px 6px;line-height:1.5}
+  .step-head h2{font-size:14.5px;font-weight:600;letter-spacing:-.005em}
+  .step-note{font-size:12.5px;color:var(--muted);margin:12px 0 0;line-height:1.5}
+
+  select{width:100%;font-family:var(--sans);font-size:14.5px;font-weight:500;padding:11px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink);appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+    background-position:calc(100% - 19px) calc(50% + 1px),calc(100% - 14px) calc(50% + 1px);
+    background-size:5px 5px,5px 5px;background-repeat:no-repeat;cursor:pointer}
+
+  /* sliders */
+  .sl{margin-bottom:17px}
+  .sl:last-child{margin-bottom:0}
+  .sl-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+  .sl-head .lbl{font-size:13.5px;font-weight:500}
+  .sl-head .of{font-size:11px;color:var(--faint);font-family:var(--mono)}
+  .sl-row{display:flex;align-items:center;gap:12px}
+  input[type=range]{flex:1;min-width:0;accent-color:var(--accent);height:22px;cursor:pointer}
+  .spin{width:66px;font-family:var(--mono);font-size:14px;font-weight:500;text-align:right;padding:7px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--surface);color:var(--ink);font-variant-numeric:tabular-nums}
+  .big .sl-head .lbl{font-size:14.5px}
+  .big .spin{width:78px;font-size:17px;padding:8px 9px}
+
+  .allcam{display:flex;gap:11px;align-items:flex-start;margin-top:13px;padding:12px;background:var(--surface-2);border-radius:6px;font-size:12.5px;color:var(--muted);line-height:1.5}
+  .allcam b{color:var(--ink);font-weight:600}
+  .allcam .ic{color:var(--accent);margin-top:1px}
+
+  /* icons */
+  .ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round}
+  .sl-head .lbl{display:flex;align-items:center;gap:9px}
+  .sl-head .lbl .ic{color:var(--accent)}
+  .big .sl-head .lbl .ic{width:20px;height:20px}
+
+  .prop-row{display:flex;gap:9px;align-items:stretch}
+  .prop-row select{flex:1;min-width:0}
+  .reset{flex:none;padding:0 15px;border:1px solid var(--line-strong);background:var(--surface);color:var(--muted);border-radius:6px;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer}
+  .reset:hover{border-color:var(--accent);color:var(--accent)}
+
+
+  /* result */
+  .result{padding:20px 22px;background:var(--surface-2)}
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:7px;overflow:hidden;margin-bottom:16px}
+  @media (max-width:430px){.tiles{grid-template-columns:1fr 1fr}}
+  .tile{background:var(--surface);padding:13px 12px}
+  .tile .v{font-family:var(--mono);font-size:29px;font-weight:600;letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums;color:var(--accent)}
+  .tile .k{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.35}
+  .tile.q .v{color:var(--ink)}
+
+  .bar-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:7px}
+  .bar-head .l{font-size:12.5px;color:var(--muted)}
+  .pct{font-family:var(--mono);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+  .bar{height:24px;background:var(--surface);border:1px solid var(--line-strong);border-radius:5px;overflow:hidden;display:flex}
+  .seg{height:100%;transition:width .18s ease}
+  .seg.s{background:var(--load-s)} .seg.c{background:var(--load-c)}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:9px;font-size:11.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
+  .legend i.s{background:var(--load-s)} .legend i.c{background:var(--load-c)} .legend i.h{background:var(--surface);border:1px solid var(--line-strong)}
+
+  .verdict{display:block;font-size:13px;font-weight:600;padding:10px 12px;border-radius:6px;margin-top:14px;line-height:1.45}
+  .verdict.ok{background:var(--ok-bg);color:var(--ok)}
+  .verdict.warn{background:var(--warn-bg);color:var(--warn)}
+  .verdict.crit{background:var(--crit-bg);color:var(--crit)}
+
+  .bom{margin-top:18px;border-top:1px solid var(--line-strong);padding-top:15px}
+  .bom .eyebrow{display:block;margin-bottom:12px}
+  .unit{background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:14px 15px;margin-bottom:10px}
+  .unit:last-child{margin-bottom:0}
+  .unit-head{display:flex;gap:11px;align-items:center;padding-bottom:11px;border-bottom:1px solid var(--line);margin-bottom:11px}
+  .unit-ic{width:34px;height:34px;flex:none;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center}
+  .unit-ic .ic{width:19px;height:19px}
+  .qty{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1}
+  .qty::after{content:" ×";font-size:13px;color:var(--faint);font-weight:400}
+  .unit-name{font-size:14.5px;font-weight:600;flex:1;line-height:1.3}
+  .unit-sub{display:block;font-size:11.5px;font-weight:400;color:var(--muted);margin-top:3px;line-height:1.45}
+  dl.specs{margin:0;display:grid;grid-template-columns:max-content 1fr;gap:6px 16px}
+  @media (max-width:430px){dl.specs{grid-template-columns:1fr;gap:2px 0}}
+  dl.specs dt{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:600;padding-top:2px}
+  dl.specs dd{margin:0;font-size:12.5px;line-height:1.5}
+  @media (max-width:430px){dl.specs dd{margin-bottom:7px}}
+  dl.specs dd em{font-style:normal;color:var(--muted)}
+
+
+  /* assumptions */
+  details{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  summary{cursor:pointer;font-size:13.5px;font-weight:600;padding:15px 20px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  summary::-webkit-details-marker{display:none}
+  summary .chev{font-size:11px;color:var(--faint)}
+  details[open] summary{border-bottom:1px solid var(--line)}
+  .dbody{padding:18px 20px}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px 20px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:12.5px;font-weight:500}
+  .field .hint{font-size:11px;color:var(--faint);line-height:1.45}
+  .field input,.field select{font-family:var(--mono);font-size:13px;padding:8px 9px;border:1px solid var(--line-strong);border-radius:5px;background:var(--surface);color:var(--ink)}
+  .field select{font-weight:400;background-image:none;padding-right:9px}
+  .formula{margin-top:17px;padding:14px;background:var(--surface-2);border-radius:6px;font-family:var(--mono);font-size:12px;line-height:1.85;overflow-x:auto;white-space:pre;color:var(--ink)}
+  .dbody p{font-size:13px;color:var(--muted);line-height:1.6;margin:0 0 10px;max-width:62ch}
+  .dbody p:last-child{margin-bottom:0}
+  .dbody p b{color:var(--ink);font-weight:600}
+
+  footer{margin-top:26px;font-size:11.5px;color:var(--faint);line-height:1.65;max-width:62ch;margin-inline:auto;text-align:center}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <symbol id="ic-cam" viewBox="0 0 24 24">
+      <path d="M3.2 8.6 16.4 4.4l1.3 4-13.2 4.2-1.3-4Z"/>
+      <path d="M7.4 11.9 8.5 15.6"/><path d="M6.3 15.6h4.4"/><path d="M17.7 8.4 20.8 7.4"/>
+    </symbol>
+    <symbol id="ic-heat" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.7"/>
+    </symbol>
+    <symbol id="ic-count" viewBox="0 0 24 24">
+      <path d="M5 3.4v17.2"/><path d="M19 3.4v17.2"/>
+      <path d="M8.8 9.3h6.4"/><path d="M13.1 7.2l2.1 2.1-2.1 2.1"/>
+      <path d="M15.2 15.1H8.8"/><path d="M10.9 13l-2.1 2.1 2.1 2.1"/>
+    </symbol>
+    <symbol id="ic-flow" viewBox="0 0 24 24">
+      <path d="M3 12h13.6"/><path d="M13.4 7.6 17.8 12l-4.4 4.4"/>
+      <path d="M3 6.6h6.2"/><path d="M3 17.4h6.2"/>
+    </symbol>
+    <symbol id="ic-dwell" viewBox="0 0 24 24">
+      <circle cx="8.4" cy="5.5" r="2.7"/>
+      <path d="M4.2 20.4v-4.8a4.2 4.2 0 0 1 4.2-4.2 4.2 4.2 0 0 1 3.4 1.7"/>
+      <circle cx="16.8" cy="16.2" r="4.7"/><path d="M16.8 13.7v2.5l1.7 1"/>
+    </symbol>
+    <symbol id="ic-server" viewBox="0 0 24 24">
+      <rect x="3.4" y="4" width="17.2" height="6.4" rx="1.6"/>
+      <rect x="3.4" y="13.6" width="17.2" height="6.4" rx="1.6"/>
+      <path d="M6.9 7.2h.01"/><path d="M6.9 16.8h.01"/>
+      <path d="M10.4 7.2h4.2"/><path d="M10.4 16.8h4.2"/>
+    </symbol>
+    <symbol id="ic-nodes" viewBox="0 0 24 24">
+      <circle cx="12" cy="5" r="2.3"/><circle cx="5.5" cy="18.6" r="2.3"/><circle cx="18.5" cy="18.6" r="2.3"/>
+      <path d="M10.6 7 7 16.6"/><path d="M13.4 7 17 16.6"/><path d="M7.8 18.6h8.4"/>
+    </symbol>
+    <symbol id="ic-db" viewBox="0 0 24 24">
+      <ellipse cx="12" cy="6" rx="7.4" ry="2.9"/>
+      <path d="M4.6 6v12c0 1.6 3.3 2.9 7.4 2.9s7.4-1.3 7.4-2.9V6"/>
+      <path d="M4.6 12c0 1.6 3.3 2.9 7.4 2.9s7.4-1.3 7.4-2.9"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <h1>Mall Analytics Sizing</h1>
+    <p>Pick a property, set the cameras, pull the scenario sliders. The hardware follows from measured processing cost.</p>
+  </header>
+
+  <div class="card">
+
+    <div class="step">
+      <div class="step-head"><span class="step-n">1</span><h2>Property</h2></div>
+      <div class="prop-row">
+      <select id="property" aria-label="Property">
+        <option value="typical">Typical mall — SM Manila class</option>
+        <option value="large">Large mall</option>
+        <option value="flagship">Flagship — Mall of Asia class</option>
+        <option value="custom" id="optCustom">Custom</option>
+      </select>
+      <button type="button" class="reset" id="reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-n">2</span><h2>Cameras in scope</h2></div>
+      <div class="sl big">
+        <div class="sl-head"><span class="lbl"><svg class="ic"><use href="#ic-cam"/></svg><span>Common-area cameras analysed</span></span></div>
+        <div class="sl-row">
+          <input type="range" id="scope" min="0" max="400" step="1" value="91" aria-label="Common-area cameras analysed">
+          <input type="number" class="spin" id="scopeN" min="0" max="400" step="1" value="91" aria-label="Common-area cameras, exact value">
+        </div>
+      </div>
+      <div class="allcam">
+        <svg class="ic"><use href="#ic-heat"/></svg>
+        <span>Every one of these carries <b>heatmaps, zone activity and zone dwell</b>. All three read the same sampled frame, so they cost one look between them — about 14 ms per second per camera. That is why they run estate-wide rather than selectively.</span>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-n">3</span><h2>Continuous tracking</h2></div>
+      <div class="sl">
+        <div class="sl-head"><span class="lbl"><svg class="ic"><use href="#ic-count"/></svg><span>People counting, in and out</span></span><span class="of" id="ofA">of 91</span></div>
+        <div class="sl-row">
+          <input type="range" id="count" min="0" max="91" step="1" value="12" aria-label="People counting cameras">
+          <input type="number" class="spin" id="countN" min="0" step="1" value="12" aria-label="People counting cameras, exact value">
+        </div>
+      </div>
+      <div class="sl">
+        <div class="sl-head"><span class="lbl"><svg class="ic"><use href="#ic-flow"/></svg><span>Direction of travel</span></span><span class="of" id="ofB">of 91</span></div>
+        <div class="sl-row">
+          <input type="range" id="flow" min="0" max="91" step="1" value="12" aria-label="Direction of travel cameras">
+          <input type="number" class="spin" id="flowN" min="0" step="1" value="12" aria-label="Direction of travel cameras, exact value">
+        </div>
+      </div>
+      <div class="sl">
+        <div class="sl-head"><span class="lbl"><svg class="ic"><use href="#ic-dwell"/></svg><span>Per-person dwell detail</span></span><span class="of" id="ofC">of 91</span></div>
+        <div class="sl-row">
+          <input type="range" id="dwell" min="0" max="91" step="1" value="10" aria-label="Per-person dwell cameras">
+          <input type="number" class="spin" id="dwellN" min="0" step="1" value="10" aria-label="Per-person dwell cameras, exact value">
+        </div>
+      </div>
+      <p class="step-note">These three cost the same — about 98 ms per second each, seven times a sampled camera. They run on cameras already counted above, and are placed where the question needs a tracked person rather than a crowd.</p>
+    </div>
+
+
+    <div class="result">
+      <div class="tiles">
+        <div class="tile"><div class="v num" id="tServers">—</div><div class="k">Middleware servers</div></div>
+        <div class="tile q"><div class="v num" id="tGpus">—</div><div class="k">GPU cards</div></div>
+        <div class="tile q"><div class="v num" id="tAll">—</div><div class="k">Machines on site</div></div>
+      </div>
+
+      <div class="bar-head"><span class="l">Middleware capacity used</span><span class="pct num" id="pct">—</span></div>
+      <div class="bar"><div class="seg s" id="segS"></div><div class="seg c" id="segC"></div></div>
+      <div class="legend">
+        <span><i class="s"></i><span id="lgS">—</span></span>
+        <span><i class="c"></i><span id="lgC">—</span></span>
+        <span><i class="h"></i><span id="lgH">—</span></span>
+      </div>
+
+      <div class="verdict ok" id="verdict">—</div>
+
+      <div class="bom">
+        <span class="eyebrow">What goes on site, per property</span>
+
+        <div class="unit">
+          <div class="unit-head">
+            <span class="unit-ic"><svg class="ic"><use href="#ic-server"/></svg></span>
+            <span class="qty num" id="qA">—</span>
+            <span class="unit-name">Middleware server
+              <span class="unit-sub">Runs the video analytics. The only tier that grows with the camera count.</span>
+            </span>
+          </div>
+          <dl class="specs" id="specA"></dl>
+        </div>
+
+        <div class="unit">
+          <div class="unit-head">
+            <span class="unit-ic"><svg class="ic"><use href="#ic-nodes"/></svg></span>
+            <span class="qty num">1</span>
+            <span class="unit-name">Vantiq server
+              <span class="unit-sub">Rules, alerts and integration with building and security systems. Keeps running if the internet link drops.</span>
+            </span>
+          </div>
+          <dl class="specs" id="specB"></dl>
+        </div>
+
+        <div class="unit">
+          <div class="unit-head">
+            <span class="unit-ic"><svg class="ic"><use href="#ic-db"/></svg></span>
+            <span class="qty num">1</span>
+            <span class="unit-name">Time-series database
+              <span class="unit-sub">Long-horizon reporting. Needed because this deployment is analytics heavy.</span>
+            </span>
+          </div>
+          <dl class="specs" id="specC"></dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <details>
+    <summary><span>Assumptions and the arithmetic</span><span class="chev">▾</span></summary>
+    <div class="dbody">
+      <div class="grid2">
+        <div class="field">
+          <label for="gpu">Graphics processor</label>
+          <select id="gpu">
+            <option value="l4">NVIDIA L4 24 GB — 1.0×</option>
+            <option value="r5060">RTX 5060 Laptop 8 GB — 1.0×</option>
+            <option value="r5070">RTX 5070 Ti 16 GB — 1.8×</option>
+          </select>
+          <span class="hint">The L4 is carried at the proof-of-concept machine's measured speed, which understates a newer data-centre card.</span>
+        </div>
+        <div class="field">
+          <label for="fps">Source frame rate (fps)</label>
+          <input id="fps" type="number" step="0.1" min="1" max="60" value="15.9">
+          <span class="hint">Measured off the recorder at 15.9, though it advertises 30. Every tracked camera scales directly with this.</span>
+        </div>
+        <div class="field">
+          <label for="stride">Analyse every Nth frame</label>
+          <input id="stride" type="number" step="1" min="3" max="10" value="3">
+          <span class="hint">Floor of 3. At 5, crossing counts came out about 13% high on identical footage.</span>
+        </div>
+        <div class="field">
+          <label for="interval">Seconds between sampled looks</label>
+          <input id="interval" type="number" step="1" min="1" max="60" value="5">
+          <span class="hint">Applies to heatmaps, zone activity and zone dwell together.</span>
+        </div>
+        <div class="field">
+          <label for="headroom">Spare capacity held back (%)</label>
+          <input id="headroom" type="number" step="5" min="0" max="50" value="20">
+          <span class="hint">A machine is added before this margin is eaten, so a property can grow without buying again.</span>
+        </div>
+        <div class="field">
+          <label for="perServer">GPU cards per machine</label>
+          <input id="perServer" type="number" step="1" min="1" max="8" value="3">
+          <span class="hint">Three cards fit a standard rack-mount chassis on one power budget.</span>
+        </div>
+        <div class="field">
+          <label for="retention">Reporting history kept (years)</label>
+          <input id="retention" type="number" step="0.5" min="0.5" max="10" value="2">
+          <span class="hint">Sets the database disk. No recorded video is stored — that stays on the existing recorder.</span>
+        </div>
+        <div class="field">
+          <label for="bytes">Average event size (bytes)</label>
+          <input id="bytes" type="number" step="64" min="64" max="8192" value="1024">
+          <span class="hint">1 KB is generous. Most events are a count and a timestamp; movement paths are the large ones.</span>
+        </div>
+      </div>
+
+      <div class="formula" id="formula">—</div>
+
+      <p style="margin-top:16px"><b>The model is deliberately conservative.</b> Cameras doing continuous tracking are charged for the sampled look as well, even though on the proof of concept they produced their heatmap from the tracking pass at no extra cost. Sizing against the higher figure leaves that saving as margin.</p>
+      <p><b>Counting and direction of travel cost the same.</b> Both run continuous tracking at 640 pixels through the same path. Direction of travel does slightly less work, so swapping one for the other is free and its cost is measured rather than estimated.</p>
+      <p><b>Tracking is per camera.</b> A person keeps an identity inside one camera's view and the track ends when they leave frame; no identity is carried between cameras. Movement across the mall is reported at the aggregate level, and camera views can be laid out together on the dashboard so the flow between them reads as one picture.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary><span>What this is based on, and what it is not</span><span class="chev">▾</span></summary>
+    <div class="dbody">
+      <p><b>Measured, not claimed.</b> The proof of concept ran continuously for three weeks on SM's own test machine, carrying eight cameras: three entrance counts and five per-person dwell, each also producing a heatmap from the same pass. Every figure here comes from timings on that machine.</p>
+      <p><b>A planning estimate, not a quotation.</b> It is not a performance guarantee either. Sizing is done per property — an average across an estate sizes nothing, because a flagship mall can carry double the cameras of a typical one.</p>
+      <p><b>Read before ordering.</b> These figures size the production analytics platform. The proof-of-concept software is not that platform and does not reach these camera counts per machine; production stream handling is separate development work that has to be funded before the hardware can be filled.</p>
+    </div>
+  </details>
+
+  <footer>Sizing model · September 2026 · built on measured proof-of-concept throughput</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var MS640=18.4, MS1920=69.3, BUDGET=1000;
+  var GPUS={ l4:{label:"NVIDIA L4 24 GB",mult:1.0}, r5060:{label:"RTX 5060 Laptop 8 GB",mult:1.0}, r5070:{label:"RTX 5070 Ti 16 GB",mult:1.8} };
+  var PRESETS={
+    typical:{scope:91,count:12,flow:12,dwell:10},
+    large:{scope:140,count:18,flow:18,dwell:14},
+    flagship:{scope:175,count:24,flow:24,dwell:18}
+  };
+  var S={gpu:"l4",fps:15.9,stride:3,interval:5,headroom:20,perServer:3,retention:2,bytes:1024};
+  var M={scope:91,count:12,flow:12,dwell:10};
+  var $=function(id){return document.getElementById(id);};
+  var lock=false;
+
+  function mult(){return GPUS[S.gpu].mult;}
+  function costSampled(){return (MS1920/mult())/S.interval;}
+  function costCont(){return (S.fps/S.stride)*(MS640/mult());}
+  function fmt(n,d){d=d||0;return n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});}
+
+  function specList(id,rows){
+    var dl=$(id);
+    dl.textContent="";
+    rows.forEach(function(r){
+      var dt=document.createElement("dt"); dt.textContent=r[0];
+      var dd=document.createElement("dd"); dd.innerHTML=r[1];
+      dl.appendChild(dt); dl.appendChild(dd);
+    });
+  }
+
+  function compute(){
+    var cont=M.count+M.flow+M.dwell;
+    var sMs=M.scope*costSampled(), cMs=cont*costCont(), demand=sMs+cMs;
+    var gpusNeeded=demand>0?Math.ceil((demand/(1-S.headroom/100))/BUDGET):0;
+    var servers=Math.ceil(gpusNeeded/S.perServer);
+    if(demand>0&&servers<1)servers=1;
+    var gpus=servers*S.perServer, cap=gpus*BUDGET;
+    var spare=Math.max(0,cap-demand);
+    var ev=M.scope/S.interval+cont*0.2;
+    return {cont:cont,sMs:sMs,cMs:cMs,demand:demand,servers:servers,gpus:gpus,cap:cap,
+      util:cap>0?demand/cap:0, spare:spare,
+      spareS:costSampled()>0?Math.floor(spare/costSampled()):0,
+      spareC:costCont()>0?Math.floor(spare/costCont()):0,
+      storeGB:ev*86400*365*S.retention*S.bytes/1e9};
+  }
+
+  function render(){
+    var c=compute(), cap=c.cap||1;
+
+    $("tServers").textContent=fmt(c.servers);
+    $("tGpus").textContent=fmt(c.gpus);
+    $("tAll").textContent=fmt(c.servers+2);
+
+    $("segS").style.width=(100*c.sMs/cap)+"%";
+    $("segC").style.width=(100*c.cMs/cap)+"%";
+    var u=Math.round(c.util*100);
+    $("pct").textContent=u+"%";
+    var cls=c.util>0.95?"crit":(c.util>0.85?"warn":"ok");
+    $("pct").style.color="var(--"+cls+")";
+
+    $("lgS").textContent="Heatmaps and zones — "+Math.round(100*c.sMs/cap)+"%";
+    $("lgC").textContent="Continuous tracking — "+Math.round(100*c.cMs/cap)+"%";
+    $("lgH").textContent="Spare — "+Math.round(100*c.spare/cap)+"%";
+
+    var v=$("verdict");
+    v.className="verdict "+cls;
+    if(c.demand<=0){ v.textContent="Nothing selected — add cameras above."; }
+    else if(cls==="crit"){ v.textContent="Over-subscribed. Add a machine, or move cameras off continuous tracking."; }
+    else if(cls==="warn"){ v.textContent="Running close to the limit. Room for about "+fmt(c.spareS)+" more sampled cameras, or "+fmt(c.spareC)+" more tracked."; }
+    else { v.textContent="Sized with margin. Room for about "+fmt(c.spareS)+" more sampled cameras, or "+fmt(c.spareC)+" more tracked, before another machine is needed."; }
+
+    $("qA").textContent=fmt(c.servers);
+
+    var diskTB = Math.max(2, Math.ceil(c.storeGB*1.35/1000));
+    specList("specA",[
+      ["Chassis","Rack-mount, dual power supplies, built to run continuously"],
+      ["Graphics",S.perServer+" × "+GPUS[S.gpu].label],
+      ["Processor","16–24 cores, Xeon Silver or EPYC class"],
+      ["Memory","128 GB server-grade (ECC)"],
+      ["Storage","2 × 1 TB NVMe, plus 2 TB SSD working cache"],
+      ["Network","2 × 10 GbE, dedicated segment from the recorder"],
+      ["System","Ubuntu LTS"],
+      ["Carries", fmt(M.scope)+" sampled + "+fmt(c.cont)+" tracked cameras across "+fmt(c.servers)+" machine"+(c.servers===1?"":"s")+", at "+Math.round(c.util*100)+"% load"]
+    ]);
+    specList("specB",[
+      ["Processor","8 cores"],
+      ["Memory","32 GB"],
+      ["Storage","256 GB system, plus 500 GB event buffer"],
+      ["Graphics","None required"],
+      ["Network","1 GbE, mall network only"],
+      ["System","Ubuntu LTS"],
+      ["Buffer","Events queue locally through a link outage and backfill automatically"]
+    ]);
+    specList("specC",[
+      ["Processor","8–16 cores"],
+      ["Memory","64 GB"],
+      ["Storage",diskTB+" TB NVMe <em>— about "+fmt(c.storeGB)+" GB of events over "+S.retention+" year"+(S.retention===1?"":"s")+", with room to grow</em>"],
+      ["Network","1 GbE, mall network only"],
+      ["Database","PostgreSQL with TimescaleDB"],
+      ["System","Ubuntu LTS"],
+      ["Video","None stored here, or anywhere in this stack — recording stays on the existing NVR"]
+    ]);
+
+
+    $("formula").textContent=
+      "work per second = looks per second  ×  milliseconds per look\n\n"
+      +"  sampled camera    1 ÷ "+S.interval+" s        × "+fmt(MS1920/mult(),1)+" ms  = "+fmt(costSampled(),1)+" ms/s\n"
+      +"  tracked camera    "+fmt(S.fps,1)+" ÷ "+S.stride+"     × "+fmt(MS640/mult(),1)+" ms  = "+fmt(costCont(),1)+" ms/s\n\n"
+      +"  this property     "+fmt(M.scope)+" sampled + "+fmt(c.cont)+" tracked  = "+fmt(c.demand)+" ms/s\n\n"
+      +"  one card delivers 1,000 ms of work per second\n"
+      +"  cards    = round up ( "+fmt(c.demand)+" ÷ "+((100-S.headroom)/100).toFixed(2)+" ÷ 1,000 ) = "+fmt(c.gpus>0?Math.ceil((c.demand/(1-S.headroom/100))/BUDGET):0)+"\n"
+      +"  machines = round up ( cards ÷ "+S.perServer+" ) = "+fmt(c.servers);
+  }
+
+  // --- pair a range + number input to one model key, capped at scope ---
+  function pair(key, rangeId, numId){
+    var r=$(rangeId), n=$(numId);
+    function set(v){
+      v=parseInt(v,10); if(isNaN(v)) v=0;
+      v=Math.max(0, v);
+      if(key!=="scope") v=Math.min(v, M.scope); else v=Math.min(v, 400);
+      M[key]=v; r.value=v; n.value=v;
+      if(key==="scope") clampSubs();
+      if(!lock) markCustom();
+      render();
+    }
+    r.addEventListener("input",function(){set(r.value);});
+    n.addEventListener("input",function(){ if(n.value==="") return; set(n.value); });
+    n.addEventListener("blur",function(){ n.value=M[key]; });
+    return {set:set, r:r, n:n};
+  }
+
+  var P={};
+  function clampSubs(){
+    ["count","flow","dwell"].forEach(function(k){
+      P[k].r.max=String(M.scope); P[k].n.max=String(M.scope);
+      if(M[k]>M.scope){ M[k]=M.scope; P[k].r.value=M.scope; P[k].n.value=M.scope; }
+    });
+    $("ofA").textContent="of "+fmt(M.scope);
+    $("ofB").textContent="of "+fmt(M.scope);
+    $("ofC").textContent="of "+fmt(M.scope);
+  }
+
+  var lastPreset="typical";
+  var PRESET_NAMES={typical:"Typical mall", large:"Large mall", flagship:"Flagship mall"};
+  function markCustom(){
+    $("optCustom").textContent="Custom — edited from "+PRESET_NAMES[lastPreset];
+    $("property").value="custom";
+  }
+
+  function applyPreset(k){
+    var p=PRESETS[k]; if(!p) return;
+    lastPreset=k;
+    $("optCustom").textContent="Custom";
+    lock=true;
+    M.scope=p.scope; P.scope.r.value=p.scope; P.scope.n.value=p.scope;
+    clampSubs();
+    ["count","flow","dwell"].forEach(function(key){
+      M[key]=p[key]; P[key].r.value=p[key]; P[key].n.value=p[key];
+    });
+    lock=false;
+    render();
+  }
+
+  P.scope=pair("scope","scope","scopeN");
+  P.count=pair("count","count","countN");
+  P.flow=pair("flow","flow","flowN");
+  P.dwell=pair("dwell","dwell","dwellN");
+
+  $("property").addEventListener("change",function(){ applyPreset(this.value); });
+  $("reset").addEventListener("click",function(){
+    applyPreset(lastPreset);
+    $("property").value=lastPreset;
+  });
+
+  function setting(id,key,parse,min,max){
+    var i=$(id);
+    i.addEventListener("input",function(){
+      if(parse===String){ S[key]=i.value; render(); return; }
+      var v=parse(i.value); if(isNaN(v)) return;
+      S[key]=Math.max(min,Math.min(max,v)); render();
+    });
+    i.addEventListener("blur",function(){ if(parse!==String) i.value=S[key]; });
+  }
+  setting("gpu","gpu",String);
+  setting("fps","fps",parseFloat,1,60);
+  setting("stride","stride",function(v){return parseInt(v,10);},3,10);
+  setting("interval","interval",function(v){return parseInt(v,10);},1,60);
+  setting("headroom","headroom",function(v){return parseInt(v,10);},0,50);
+  setting("perServer","perServer",function(v){return parseInt(v,10);},1,8);
+  setting("retention","retention",parseFloat,0.5,10);
+  setting("bytes","bytes",function(v){return parseInt(v,10);},64,8192);
+
+  clampSubs();
+  render();
+})();
+</script>
+
+</body>
+</html>
