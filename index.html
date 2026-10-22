@@ -72,7 +72,7 @@
     .cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:20px;align-items:start;background:none;border:0;border-radius:0;box-shadow:none;overflow:visible}
     .pane{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
     .pane-in .step:last-child{border-bottom:0}
-    .pane-out.stick{position:sticky;top:16px}
+    .pane.stick{position:sticky;top:16px}
   }
   .step{padding:20px 22px;border-bottom:1px solid var(--line)}
   .step-head{display:flex;align-items:baseline;gap:9px;margin-bottom:14px}
@@ -678,12 +678,12 @@
     fitSticky();
   }
 
-  // Keep the results pane in view while the inputs scroll, but only when it fits the window;
-  // a taller pane scrolls with the page so nothing is cut off.
-  var outPane=document.querySelector(".pane-out");
-  function fitSticky(){ outPane.classList.toggle("stick", outPane.offsetHeight+32<=window.innerHeight); }
+  // Pin whichever pane fits the window (usually the sliders), so the other can scroll beside it;
+  // a pane taller than the window scrolls with the page so nothing is cut off.
+  var panes=document.querySelectorAll(".pane");
+  function fitSticky(){ panes.forEach(function(p){ p.classList.toggle("stick", p.offsetHeight+32<=window.innerHeight); }); }
   window.addEventListener("resize",fitSticky);
-  if(window.ResizeObserver) new ResizeObserver(fitSticky).observe(outPane);
+  if(window.ResizeObserver) panes.forEach(function(p){ new ResizeObserver(fitSticky).observe(p); });
 
   // --- pair a range + number input to one model key, capped at scope ---
   function pair(key, rangeId, numId){
