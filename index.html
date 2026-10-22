@@ -479,7 +479,7 @@
   }
   // the one-line answer at the top of the results: what goes on the purchase order
   var FIXED=", plus 1 Vantiq server and 1 database server.";
-  function buyLine(html){ $("buy").innerHTML="To buy: "+html; }
+  function buyLine(html){ $("buy").innerHTML=html; }
   function plural(n,one,many){ return fmt(n)+" "+(n===1?one:many); }
   function fmt(n,d){d=d||0;return n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});}
 
