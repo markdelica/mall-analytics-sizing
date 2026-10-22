@@ -451,13 +451,13 @@
         ["Chassis","Rack-mount, dual hot-swap power supplies, built to run continuously"],
         ["Graphics",k+" × "+GPUS[S.gpu].label]
       ];
-      if(l4) rows.push(["Reference","Dell PowerEdge R570 or equivalent"+(k===3?" (also HPE DL380 Gen11, Lenovo SR650 V3)":"")]);
+      if(l4) rows.push(["Certified","Must be NVIDIA-Certified for the L4 <em>— ask the vendor to confirm it on the quote</em>"]);
       rows.push(
         ["Processor",b.cpu],
         ["Memory",b.ram],
         ["Storage",b.disk],
-        ["Network","2 × 10 GbE add-on card, dedicated segment from the recorder"],
-        ["Rack","About 800 mm deep, needs a full-depth rack <em>— shallow cabinet: Lenovo ThinkEdge SE455 V3, 440 mm</em>"],
+        ["Network","2 × 10 GbE, dedicated segment from the recorder"],
+        ["Rack","Check the cabinet depth <em>— most GPU servers need a full-depth rack; short-depth models exist for 1–2 cards</em>"],
         ["System","Ubuntu LTS"]
       );
       if(c.gpus===1) rows.push(["Support","One card, no spare. Buy 4-hour on-site support."]);
