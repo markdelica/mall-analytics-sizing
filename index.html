@@ -276,7 +276,7 @@
         <div class="sl-head"><span class="lbl"><svg class="ic"><use href="#ic-cam"/></svg><span>Common-area cameras analysed</span></span></div>
         <div class="sl-row">
           <input type="range" id="scope" min="1" max="400" step="1" value="91" aria-label="Common-area cameras analysed">
-          <input type="number" class="spin" id="scopeN" min="1" max="400" step="1" value="91" aria-label="Common-area cameras, exact value">
+          <input type="number" class="spin" id="scopeN" min="1" max="2000" step="1" value="91" aria-label="Common-area cameras, exact value">
         </div>
       </div>
       <div class="allcam">
@@ -437,7 +437,7 @@
     </div>
   </details>
 
-  <footer>Sizing model · September 2026 · built on measured proof-of-concept throughput</footer>
+  <footer>Sizing model · updated October 2026 · built on measured proof-of-concept throughput</footer>
 </div>
 
 <script>
@@ -459,6 +459,9 @@
     3:{name:"Standard",cpu:"16–24 cores, Xeon Silver or EPYC class",ram:"128 GB server-grade (ECC)",disk:"2 × 1 TB NVMe, plus 2 TB SSD working cache"}
   };
   var M={scope:91,count:12,flow:12,dwell:10};
+  // what the user asked for; M is that, cut to fit the cameras in scope. Kept apart so typing or dragging
+  // the camera count through a small value does not wipe the tracking numbers.
+  var W={count:12,flow:12,dwell:10};
   var $=function(id){return document.getElementById(id);};
   var lock=false;
   var mode="server"; // "server" | "jetson": swaps only the video analytics tier
@@ -522,7 +525,7 @@
         ["System","Ubuntu LTS"]
       );
       if(c.gpus===1) rows.push(["Support","One card, no spare. Buy 4-hour on-site support."]);
-      if(idx===0) rows.push(["Carries", fmt(M.scope)+" sampled + "+fmt(c.cont)+" tracked cameras across "+fmt(c.servers)+" machine"+(c.servers===1?"":"s")+", at "+Math.round(c.util*100)+"% load"]);
+      if(idx===0) rows.push(["Carries", fmt(M.scope)+" cameras, "+fmt(c.cont)+" of them also tracked, across "+fmt(c.servers)+" machine"+(c.servers===1?"":"s")+", at "+Math.round(c.util*100)+"% load"]);
       specList(dl.id,rows);
     });
   }
@@ -546,7 +549,7 @@
       ["Power","PoE+ or DC supply, one per unit"],
       ["Network","1 GbE, one switch port per unit, same network segment as the recorder"],
       ["System","JetPack (Ubuntu based)"],
-      ["Carries",fmt(M.scope)+" sampled + "+fmt(j.tracked)+" tracked cameras across "+fmt(j.units)+" unit"+(j.units===1?"":"s")+", at "+Math.round(j.load*100)+"% load"],
+      ["Carries",fmt(M.scope)+" cameras, "+fmt(j.tracked)+" of them also tracked, across "+fmt(j.units)+" unit"+(j.units===1?"":"s")+", at "+Math.round(j.load*100)+"% load"],
       ["Estimate","<em>Not yet measured on SM footage — confirm on one test unit before ordering</em>"]
     ]);
     var n=fmt(j.units), one=j.units===1;
@@ -706,7 +709,7 @@
     function set(v){
       v=parseInt(v,10); if(isNaN(v)) v=0;
       if(key==="scope"){
-        v=Math.min(400, Math.max(1, v));
+        v=Math.min(2000, Math.max(1, v));
       } else {
         var others=0;
         ["count","flow","dwell"].forEach(function(j){ if(j!==key) others+=M[j]; });
@@ -717,16 +720,11 @@
           ? NAMES[key]+" is capped at "+fmt(room)+", not "+fmt(want)+": the other two sliders already use "+fmt(others)+" of the "+fmt(M.scope)+" cameras. Lower them first, or add cameras in scope."
           : "";
       }
-      var before={count:M.count, flow:M.flow, dwell:M.dwell};
-      M[key]=v; r.value=v; n.value=v;
+      if(key==="scope") M.scope=v; else W[key]=v;
+      r.value=v; n.value=v;
       clampSubs();
-      if(key==="scope"){
-        var cut=["count","flow","dwell"].filter(function(j){ return M[j]<before[j]; });
-        capMsg = cut.length
-          ? "Tracking was reduced to fit "+fmt(M.scope)+" cameras: "+cut.map(function(j){ return NAMES[j].toLowerCase()+" "+fmt(before[j])+" → "+fmt(M[j]); }).join(", ")+"."
-          : "";
-      }
-      if(!lock) showCap(capMsg);
+      if(key==="scope") capMsg="";
+      if(!lock) showCap(capMsg||cutMsg());
       if(!lock) markCustom();
       render();
     }
@@ -739,10 +737,17 @@
   var P={}, capMsg="";
   var NAMES={count:"People counting", flow:"Direction of travel", dwell:"Per-person dwell"};
   function showCap(t){ var w=$("capWarn"); w.textContent=t; w.hidden=!t; }
+  // stays on screen for as long as the camera count is too small for the tracking asked for
+  function cutMsg(){
+    var cut=["count","flow","dwell"].filter(function(j){ return M[j]<W[j]; });
+    return cut.length
+      ? "Tracking is reduced to fit "+fmt(M.scope)+" cameras: "+cut.map(function(j){ return NAMES[j].toLowerCase()+" "+fmt(W[j])+" → "+fmt(M[j]); }).join(", ")+". Raise the camera count and it comes back."
+      : "";
+  }
   function clampSubs(){
     var budget=M.scope;
     ["count","flow","dwell"].forEach(function(k){
-      if(M[k]>budget) M[k]=budget;
+      M[k]=Math.min(W[k],budget);
       budget-=M[k];
       P[k].r.max=String(M.scope); P[k].n.max=String(M.scope);
       P[k].r.value=M[k]; P[k].n.value=M[k];
@@ -772,7 +777,7 @@
     M.scope=p.scope; P.scope.r.value=p.scope; P.scope.n.value=p.scope;
     clampSubs();
     ["count","flow","dwell"].forEach(function(key){
-      M[key]=p[key]; P[key].r.value=p[key]; P[key].n.value=p[key];
+      W[key]=p[key];
     });
     clampSubs();
     lock=false;
