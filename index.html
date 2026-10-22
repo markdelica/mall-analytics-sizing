@@ -74,6 +74,17 @@
     .pane-in .step:last-child{border-bottom:0}
     .pane.stick{position:sticky;top:16px}
   }
+  /* three equal columns: sliders | results, the results' "on site" block split in two below the summary */
+  @media (min-width:1280px){
+    .wrap{max-width:1560px}
+    .cols{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .pane-out{grid-column:2 / 4}
+    .bom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto auto 1fr;column-gap:20px;align-items:start}
+    .bom .eyebrow{grid-column:1 / -1}
+    .bom .hw{grid-column:2;grid-row:2}
+    .bom #unitsA{grid-column:2;grid-row:3}
+    .bom .fixed{grid-column:1;grid-row:2 / 4;margin-top:0}
+  }
   .step{padding:20px 22px;border-bottom:1px solid var(--line)}
   .step-head{display:flex;align-items:baseline;gap:9px;margin-bottom:14px}
   .step-n{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:3px;padding:2px 6px;line-height:1.5}
@@ -148,6 +159,7 @@
   .bom .eyebrow{display:block;margin-bottom:12px}
   .unit{background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:14px 15px;margin-bottom:10px}
   .unit:last-child{margin-bottom:0}
+  .fixed{margin-top:10px}
   .unit-head{display:flex;gap:11px;align-items:center;padding-bottom:11px;border-bottom:1px solid var(--line);margin-bottom:11px}
   .unit-ic{width:34px;height:34px;flex:none;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center}
   .unit-ic .ic{width:19px;height:19px}
@@ -304,15 +316,6 @@
 
     <div class="pane pane-out">
     <div class="result">
-      <div class="hw">
-        <span class="hw-l" id="hwLbl">Video analytics hardware</span>
-        <div class="seg-ctl" role="tablist" aria-labelledby="hwLbl">
-          <button type="button" role="tab" id="modeServer" aria-selected="true" aria-controls="hwPanel">GPU server</button>
-          <button type="button" role="tab" id="modeJetson" aria-selected="false" aria-controls="hwPanel" tabindex="-1">Jetson Orin Nano Super</button>
-        </div>
-      </div>
-
-      <div id="hwPanel" role="tabpanel" aria-labelledby="modeServer">
       <div class="tiles">
         <div class="tile"><div class="v num" id="tServers">—</div><div class="k" id="kServers">Middleware servers</div></div>
         <div class="tile q"><div class="v num" id="tGpus">—</div><div class="k" id="kGpus">GPU cards</div></div>
@@ -332,8 +335,17 @@
       <div class="bom">
         <span class="eyebrow">What goes on site, per property</span>
 
-        <div id="unitsA"></div>
+        <div class="hw">
+          <span class="hw-l" id="hwLbl">Video analytics hardware</span>
+          <div class="seg-ctl" role="tablist" aria-labelledby="hwLbl">
+            <button type="button" role="tab" id="modeServer" aria-selected="true" aria-controls="unitsA">GPU server</button>
+            <button type="button" role="tab" id="modeJetson" aria-selected="false" aria-controls="unitsA" tabindex="-1">Jetson Orin Nano Super</button>
+          </div>
+        </div>
 
+        <div id="unitsA" role="tabpanel" aria-labelledby="modeServer"></div>
+
+        <div class="fixed">
         <div class="unit">
           <div class="unit-head">
             <span class="unit-ic"><svg class="ic"><use href="#ic-nodes"/></svg></span>
@@ -355,7 +367,7 @@
           </div>
           <dl class="specs" id="specC"></dl>
         </div>
-      </div>
+        </div>
       </div>
     </div>
     </div>
@@ -590,7 +602,7 @@
     var jet=m==="jetson";
     $("modeServer").setAttribute("aria-selected",String(!jet)); $("modeServer").tabIndex=jet?-1:0;
     $("modeJetson").setAttribute("aria-selected",String(jet)); $("modeJetson").tabIndex=jet?0:-1;
-    $("hwPanel").setAttribute("aria-labelledby",jet?"modeJetson":"modeServer");
+    $("unitsA").setAttribute("aria-labelledby",jet?"modeJetson":"modeServer");
     $("kServers").textContent=jet?"Edge AI units":"Middleware servers";
     $("kGpus").textContent=jet?"Network ports for the units":"GPU cards";
     $("kAll").textContent=jet?"Machines on site, including 2 servers":"Machines on site";
