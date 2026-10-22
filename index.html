@@ -405,7 +405,7 @@
         <div class="field">
           <label for="headroom">Spare capacity held back (%)</label>
           <input id="headroom" type="number" step="5" min="0" max="50" value="20">
-          <span class="hint">A card is added before this margin is eaten, so a property can grow without buying again.</span>
+          <span class="hint">A <span id="hrUnit">card</span> is added before this margin is eaten, so a property can grow without buying again.</span>
         </div>
         <div class="field">
           <label for="retention">Reporting history kept (years)</label>
@@ -421,7 +421,7 @@
 
       <div class="formula" id="formula">—</div>
 
-      <p style="margin-top:16px"><b>The model is deliberately conservative.</b> Cameras doing continuous tracking are charged for the sampled look as well, even though on the proof of concept they produced their heatmap from the tracking pass at no extra cost. Sizing against the higher figure leaves that saving as margin.</p>
+      <p style="margin-top:16px"><b>The GPU server sizing is deliberately conservative.</b> In it, cameras doing continuous tracking are charged for the sampled look as well, even though on the proof of concept they produced their heatmap from the tracking pass at no extra cost. Sizing against the higher figure leaves that saving as margin. The Jetson estimate does not charge that second look, so its only margin is the spare capacity setting.</p>
       <p><b>Counting and direction of travel cost the same.</b> Both run continuous tracking at 640 pixels through the same path. Direction of travel does slightly less work, so swapping one for the other is free and its cost is measured rather than estimated.</p>
       <p><b>Tracking is per camera.</b> A person keeps an identity inside one camera's view and the track ends when they leave frame; no identity is carried between cameras. Movement across the mall is reported at the aggregate level, and camera views can be laid out together on the dashboard so the flow between them reads as one picture.</p>
     </div>
@@ -607,6 +607,7 @@
     $("kGpus").textContent=jet?"Network ports for the units":"GPU cards";
     $("kAll").textContent=jet?"Machines on site, including 2 servers":"Machines on site";
     $("barL").textContent=jet?"Edge unit capacity used":"Middleware capacity used";
+    $("hrUnit").textContent=jet?"unit":"card";
     $("gpu").disabled=jet;
     $("gpuLbl").textContent=jet?"Graphics processor — not used by Jetson units":"Graphics processor";
     try{ history.replaceState(null,"",jet?"#jetson":location.pathname+location.search); }catch(e){}
