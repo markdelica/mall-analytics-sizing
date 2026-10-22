@@ -299,16 +299,7 @@
       <div class="bom">
         <span class="eyebrow">What goes on site, per property</span>
 
-        <div class="unit">
-          <div class="unit-head">
-            <span class="unit-ic"><svg class="ic"><use href="#ic-server"/></svg></span>
-            <span class="qty num" id="qA">—</span>
-            <span class="unit-name">Middleware server
-              <span class="unit-sub">Runs the video analytics. The only tier that grows with the camera count.</span>
-            </span>
-          </div>
-          <dl class="specs" id="specA"></dl>
-        </div>
+        <div id="unitsA"></div>
 
         <div class="unit">
           <div class="unit-head">
@@ -344,8 +335,8 @@
           <label for="gpu">Graphics processor</label>
           <select id="gpu">
             <option value="l4">NVIDIA L4 24 GB — 1.0×</option>
-            <option value="r5060">RTX 5060 Laptop 8 GB — 1.0×</option>
-            <option value="r5070">RTX 5070 Ti 16 GB — 1.8×</option>
+            <option value="r5060">RTX 5060 Laptop 8 GB — 1.0× (test machine, not a buy reference)</option>
+            <option value="r5070">RTX 5070 Ti 16 GB — 1.8× (test machine, not a buy reference)</option>
           </select>
           <span class="hint">The L4 is carried at the proof-of-concept machine's measured speed, which understates a newer data-centre card.</span>
         </div>
@@ -367,12 +358,7 @@
         <div class="field">
           <label for="headroom">Spare capacity held back (%)</label>
           <input id="headroom" type="number" step="5" min="0" max="50" value="20">
-          <span class="hint">A machine is added before this margin is eaten, so a property can grow without buying again.</span>
-        </div>
-        <div class="field">
-          <label for="perServer">GPU cards per machine</label>
-          <input id="perServer" type="number" step="1" min="1" max="8" value="3">
-          <span class="hint">Three cards fit a standard rack-mount chassis on one power budget.</span>
+          <span class="hint">A card is added before this margin is eaten, so a property can grow without buying again.</span>
         </div>
         <div class="field">
           <label for="retention">Reporting history kept (years)</label>
@@ -416,7 +402,14 @@
     large:{scope:140,count:18,flow:18,dwell:14},
     flagship:{scope:175,count:24,flow:24,dwell:18}
   };
-  var S={gpu:"l4",fps:15.9,stride:3,interval:5,headroom:20,perServer:3,retention:2,bytes:1024};
+  var S={gpu:"l4",fps:15.9,stride:3,interval:5,headroom:20,retention:2,bytes:1024};
+  // One server takes 1 to 3 cards. Each card count maps to a real, orderable build.
+  var MAX_CARDS=3;
+  var BUILDS={
+    1:{name:"Small",cpu:"8–12 cores, Xeon 6 or EPYC class",ram:"64 GB server-grade (ECC)",disk:"2 × M.2 NVMe boot (mirrored), plus 1 TB NVMe working cache"},
+    2:{name:"Medium",cpu:"12–16 cores, Xeon 6 or EPYC class",ram:"128 GB server-grade (ECC)",disk:"2 × M.2 NVMe boot (mirrored), plus 2 TB NVMe working cache"},
+    3:{name:"Standard",cpu:"16–24 cores, Xeon Silver or EPYC class",ram:"128 GB server-grade (ECC)",disk:"2 × 1 TB NVMe, plus 2 TB SSD working cache"}
+  };
   var M={scope:91,count:12,flow:12,dwell:10};
   var $=function(id){return document.getElementById(id);};
   var lock=false;
@@ -436,17 +429,57 @@
     });
   }
 
+  function renderUnits(c){
+    var box=$("unitsA"); box.textContent="";
+    var groups={}, order=[];
+    c.split.forEach(function(k){ if(!groups[k]){groups[k]=0;order.push(k);} groups[k]++; });
+    var l4=S.gpu==="l4";
+    order.forEach(function(k,idx){
+      var b=BUILDS[k], n=groups[k];
+      var u=document.createElement("div"); u.className="unit";
+      u.innerHTML='<div class="unit-head"><span class="unit-ic"><svg class="ic"><use href="#ic-server"/></svg></span>'
+        +'<span class="qty num"></span><span class="unit-name"></span></div><dl class="specs"></dl>';
+      u.querySelector(".qty").textContent=fmt(n);
+      var nm=u.querySelector(".unit-name");
+      nm.textContent="Middleware server — "+b.name+", "+k+" card"+(k===1?"":"s");
+      var sub=document.createElement("span"); sub.className="unit-sub";
+      sub.textContent="Runs the video analytics. The only tier that grows with the camera count.";
+      nm.appendChild(sub);
+      var dl=u.querySelector("dl"); dl.id="specA"+idx;
+      box.appendChild(u);
+      var rows=[
+        ["Chassis","Rack-mount, dual hot-swap power supplies, built to run continuously"],
+        ["Graphics",k+" × "+GPUS[S.gpu].label]
+      ];
+      if(l4) rows.push(["Reference","Dell PowerEdge R570 or equivalent"+(k===3?" (also HPE DL380 Gen11, Lenovo SR650 V3)":"")]);
+      rows.push(
+        ["Processor",b.cpu],
+        ["Memory",b.ram],
+        ["Storage",b.disk],
+        ["Network","2 × 10 GbE add-on card, dedicated segment from the recorder"],
+        ["Rack","About 800 mm deep, needs a full-depth rack <em>— shallow cabinet: Lenovo ThinkEdge SE455 V3, 440 mm</em>"],
+        ["System","Ubuntu LTS"]
+      );
+      if(c.gpus===1) rows.push(["Support","One card, no spare. Buy 4-hour on-site support."]);
+      if(idx===0) rows.push(["Carries", fmt(M.scope)+" sampled + "+fmt(c.cont)+" tracked cameras across "+fmt(c.servers)+" machine"+(c.servers===1?"":"s")+", at "+Math.round(c.util*100)+"% load"]);
+      specList(dl.id,rows);
+    });
+  }
+
   function compute(){
     var cont=M.count+M.flow+M.dwell;
     var sMs=M.scope*costSampled(), cMs=cont*costCont(), demand=sMs+cMs;
     var gpusNeeded=demand>0?Math.ceil((demand/(1-S.headroom/100))/BUDGET):0;
-    var servers=Math.ceil(gpusNeeded/S.perServer);
-    if(demand>0&&servers<1)servers=1;
-    var gpus=servers*S.perServer, cap=gpus*BUDGET;
+    var gpus=Math.max(demand>0?1:0,gpusNeeded);
+    var servers=Math.ceil(gpus/MAX_CARDS);
+    // spread cards evenly, larger machines first: 5 -> 3+2, 7 -> 3+2+2
+    var split=[], left=gpus;
+    for(var i=servers;i>0;i--){ var k=Math.ceil(left/i); split.push(k); left-=k; }
+    var cap=gpus*BUDGET;
     var spare=Math.max(0,cap-demand);
     var room=Math.max(0, cap*(1-S.headroom/100) - demand);
     var ev=M.scope/S.interval+cont*0.2;
-    return {cont:cont,sMs:sMs,cMs:cMs,demand:demand,servers:servers,gpus:gpus,cap:cap,
+    return {split:split,cont:cont,sMs:sMs,cMs:cMs,demand:demand,servers:servers,gpus:gpus,cap:cap,
       util:cap>0?demand/cap:0, spare:spare,
       room:room,
       spareS:costSampled()>0?Math.floor(room/costSampled()):0,
@@ -475,23 +508,13 @@
     var v=$("verdict");
     v.className="verdict "+cls;
     if(c.demand<=0){ v.textContent="Nothing selected — add cameras above."; }
-    else if(cls==="crit"){ v.textContent="Over-subscribed. Add a machine, or move cameras off continuous tracking."; }
+    else if(cls==="crit"){ v.textContent="Over-subscribed. Add a card, or move cameras off continuous tracking."; }
     else if(cls==="warn"){ v.textContent="Running close to the limit. Room for about "+fmt(c.spareS)+" more sampled cameras, or "+fmt(c.spareC)+" more tracked."; }
-    else { v.textContent="Sized with margin. Room for about "+fmt(c.spareS)+" more sampled cameras, or "+fmt(c.spareC)+" more tracked, before another machine is needed."; }
+    else { v.textContent="Sized with margin. Room for about "+fmt(c.spareS)+" more sampled cameras, or "+fmt(c.spareC)+" more tracked, before another card is needed."; }
 
-    $("qA").textContent=fmt(c.servers);
-
+    renderUnits(c);
     var diskTB = Math.max(2, Math.ceil(c.storeGB*1.35/1000));
-    specList("specA",[
-      ["Chassis","Rack-mount, dual power supplies, built to run continuously"],
-      ["Graphics",S.perServer+" × "+GPUS[S.gpu].label],
-      ["Processor","16–24 cores, Xeon Silver or EPYC class"],
-      ["Memory","128 GB server-grade (ECC)"],
-      ["Storage","2 × 1 TB NVMe, plus 2 TB SSD working cache"],
-      ["Network","2 × 10 GbE, dedicated segment from the recorder"],
-      ["System","Ubuntu LTS"],
-      ["Carries", fmt(M.scope)+" sampled + "+fmt(c.cont)+" tracked cameras across "+fmt(c.servers)+" machine"+(c.servers===1?"":"s")+", at "+Math.round(c.util*100)+"% load"]
-    ]);
+
     specList("specB",[
       ["Processor","8 cores"],
       ["Memory","32 GB"],
@@ -519,7 +542,7 @@
       +"  this property     "+fmt(M.scope)+" sampled + "+fmt(c.cont)+" tracked  = "+fmt(c.demand)+" ms/s\n\n"
       +"  one card delivers 1,000 ms of work per second\n"
       +"  cards    = round up ( "+fmt(c.demand)+" ÷ "+((100-S.headroom)/100).toFixed(2)+" ÷ 1,000 ) = "+fmt(c.gpus>0?Math.ceil((c.demand/(1-S.headroom/100))/BUDGET):0)+"\n"
-      +"  machines = round up ( cards ÷ "+S.perServer+" ) = "+fmt(c.servers);
+      +"  machines = round up ( cards ÷ "+MAX_CARDS+" ) = "+fmt(c.servers)+"   ("+c.split.join(" + ")+" cards)";
   }
 
   // --- pair a range + number input to one model key, capped at scope ---
@@ -612,7 +635,6 @@
   setting("stride","stride",function(v){return parseInt(v,10);},3,10);
   setting("interval","interval",function(v){return parseInt(v,10);},1,60);
   setting("headroom","headroom",function(v){return parseInt(v,10);},0,50);
-  setting("perServer","perServer",function(v){return parseInt(v,10);},1,8);
   setting("retention","retention",parseFloat,0.5,10);
   setting("bytes","bytes",function(v){return parseInt(v,10);},64,8192);
 
