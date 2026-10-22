@@ -79,6 +79,7 @@
   .step-n{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:3px;padding:2px 6px;line-height:1.5}
   .step-head h2{font-size:14.5px;font-weight:600;letter-spacing:-.005em}
   .step-note{font-size:12.5px;color:var(--muted);margin:12px 0 0;line-height:1.5}
+  .cap-warn{color:var(--crit);font-weight:600}
 
   select{width:100%;font-family:var(--sans);font-size:14.5px;font-weight:500;padding:11px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink);appearance:none;
     background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
@@ -296,6 +297,7 @@
         </div>
       </div>
       <p class="step-note" id="trackNote"></p>
+      <p class="step-note cap-warn" id="capWarn" role="status" hidden></p>
       <p class="step-note">These three cost the same — about 98 ms per second each, seven times a sampled camera. They run on cameras already counted above, and are placed where the question needs a tracked person rather than a crowd.</p>
     </div>
     </div>
@@ -695,10 +697,23 @@
       } else {
         var others=0;
         ["count","flow","dwell"].forEach(function(j){ if(j!==key) others+=M[j]; });
-        v=Math.min(Math.max(0, M.scope-others), Math.max(0, v));
+        var want=Math.max(0, v), room=Math.max(0, M.scope-others);
+        v=Math.min(room, want);
+        // say so when a value is cut to fit, instead of capping silently
+        capMsg = want>room
+          ? NAMES[key]+" is capped at "+fmt(room)+", not "+fmt(want)+": the other two sliders already use "+fmt(others)+" of the "+fmt(M.scope)+" cameras. Lower them first, or add cameras in scope."
+          : "";
       }
+      var before={count:M.count, flow:M.flow, dwell:M.dwell};
       M[key]=v; r.value=v; n.value=v;
       clampSubs();
+      if(key==="scope"){
+        var cut=["count","flow","dwell"].filter(function(j){ return M[j]<before[j]; });
+        capMsg = cut.length
+          ? "Tracking was reduced to fit "+fmt(M.scope)+" cameras: "+cut.map(function(j){ return NAMES[j].toLowerCase()+" "+fmt(before[j])+" → "+fmt(M[j]); }).join(", ")+"."
+          : "";
+      }
+      if(!lock) showCap(capMsg);
       if(!lock) markCustom();
       render();
     }
@@ -708,7 +723,9 @@
     return {set:set, r:r, n:n};
   }
 
-  var P={};
+  var P={}, capMsg="";
+  var NAMES={count:"People counting", flow:"Direction of travel", dwell:"Per-person dwell"};
+  function showCap(t){ var w=$("capWarn"); w.textContent=t; w.hidden=!t; }
   function clampSubs(){
     var budget=M.scope;
     ["count","flow","dwell"].forEach(function(k){
@@ -746,6 +763,7 @@
     });
     clampSubs();
     lock=false;
+    showCap("");
     render();
   }
 
