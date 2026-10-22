@@ -65,8 +65,15 @@
   .masthead h1{font-size:clamp(23px,5vw,31px);font-weight:600;letter-spacing:-.022em;line-height:1.15}
   .masthead p{color:var(--muted);font-size:14px;margin:9px auto 0;max-width:46ch}
 
-  /* the card */
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+  /* the card: one card below 960px, two side-by-side cards above it */
+  .cols{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+  @media (min-width:960px){
+    .wrap{max-width:1180px}
+    .cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:20px;align-items:start;background:none;border:0;border-radius:0;box-shadow:none;overflow:visible}
+    .pane{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+    .pane-in .step:last-child{border-bottom:0}
+    .pane.stick{position:sticky;top:16px}
+  }
   .step{padding:20px 22px;border-bottom:1px solid var(--line)}
   .step-head{display:flex;align-items:baseline;gap:9px;margin-bottom:14px}
   .step-n{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:3px;padding:2px 6px;line-height:1.5}
@@ -108,6 +115,12 @@
 
   /* result */
   .result{padding:20px 22px;background:var(--surface-2)}
+  .hw{margin-bottom:16px}
+  .hw-l{display:block;font-size:12.5px;color:var(--muted);margin-bottom:7px}
+  .seg-ctl{display:flex;gap:3px;padding:3px;background:var(--surface);border:1px solid var(--line-strong);border-radius:7px}
+  .seg-ctl button{flex:1;min-width:0;font-family:var(--sans);font-size:13px;font-weight:500;line-height:1.3;color:var(--muted);background:none;border:0;border-radius:5px;padding:7px 10px;cursor:pointer}
+  .seg-ctl button:hover{color:var(--ink)}
+  .seg-ctl button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
   .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:7px;overflow:hidden;margin-bottom:16px}
   @media (max-width:430px){.tiles{grid-template-columns:1fr 1fr}}
   .tile{background:var(--surface);padding:13px 12px}
@@ -147,6 +160,8 @@
   dl.specs dd{margin:0;font-size:12.5px;line-height:1.5}
   @media (max-width:430px){dl.specs dd{margin-bottom:7px}}
   dl.specs dd em{font-style:normal;color:var(--muted)}
+  .unit-note{margin:11px 0 0;padding-top:11px;border-top:1px solid var(--line);font-size:12.5px;font-weight:600;line-height:1.5}
+  .field select:disabled{color:var(--faint);cursor:not-allowed}
 
 
   /* assumptions */
@@ -202,6 +217,11 @@
       <path d="M6.9 7.2h.01"/><path d="M6.9 16.8h.01"/>
       <path d="M10.4 7.2h4.2"/><path d="M10.4 16.8h4.2"/>
     </symbol>
+    <symbol id="ic-chip" viewBox="0 0 24 24">
+      <rect x="6" y="6" width="12" height="12" rx="1.6"/><rect x="9.4" y="9.4" width="5.2" height="5.2" rx=".6"/>
+      <path d="M9.5 3v3"/><path d="M14.5 3v3"/><path d="M9.5 18v3"/><path d="M14.5 18v3"/>
+      <path d="M3 9.5h3"/><path d="M3 14.5h3"/><path d="M18 9.5h3"/><path d="M18 14.5h3"/>
+    </symbol>
     <symbol id="ic-nodes" viewBox="0 0 24 24">
       <circle cx="12" cy="5" r="2.3"/><circle cx="5.5" cy="18.6" r="2.3"/><circle cx="18.5" cy="18.6" r="2.3"/>
       <path d="M10.6 7 7 16.6"/><path d="M13.4 7 17 16.6"/><path d="M7.8 18.6h8.4"/>
@@ -221,7 +241,8 @@
     <p>Pick a property, set the cameras, pull the scenario sliders. The hardware follows from measured processing cost.</p>
   </header>
 
-  <div class="card">
+  <div class="cols">
+    <div class="pane pane-in">
 
     <div class="step">
       <div class="step-head"><span class="step-n">1</span><h2>Property</h2></div>
@@ -277,16 +298,26 @@
       <p class="step-note" id="trackNote"></p>
       <p class="step-note">These three cost the same — about 98 ms per second each, seven times a sampled camera. They run on cameras already counted above, and are placed where the question needs a tracked person rather than a crowd.</p>
     </div>
+    </div>
 
-
+    <div class="pane pane-out">
     <div class="result">
-      <div class="tiles">
-        <div class="tile"><div class="v num" id="tServers">—</div><div class="k">Middleware servers</div></div>
-        <div class="tile q"><div class="v num" id="tGpus">—</div><div class="k">GPU cards</div></div>
-        <div class="tile q"><div class="v num" id="tAll">—</div><div class="k">Machines on site</div></div>
+      <div class="hw">
+        <span class="hw-l" id="hwLbl">Video analytics hardware</span>
+        <div class="seg-ctl" role="tablist" aria-labelledby="hwLbl">
+          <button type="button" role="tab" id="modeServer" aria-selected="true" aria-controls="hwPanel">GPU server</button>
+          <button type="button" role="tab" id="modeJetson" aria-selected="false" aria-controls="hwPanel" tabindex="-1">Jetson Orin Nano Super</button>
+        </div>
       </div>
 
-      <div class="bar-head"><span class="l">Middleware capacity used</span><span class="pct num" id="pct">—</span></div>
+      <div id="hwPanel" role="tabpanel" aria-labelledby="modeServer">
+      <div class="tiles">
+        <div class="tile"><div class="v num" id="tServers">—</div><div class="k" id="kServers">Middleware servers</div></div>
+        <div class="tile q"><div class="v num" id="tGpus">—</div><div class="k" id="kGpus">GPU cards</div></div>
+        <div class="tile q"><div class="v num" id="tAll">—</div><div class="k" id="kAll">Machines on site</div></div>
+      </div>
+
+      <div class="bar-head"><span class="l" id="barL">Middleware capacity used</span><span class="pct num" id="pct">—</span></div>
       <div class="bar"><div class="seg s" id="segS"></div><div class="seg c" id="segC"></div></div>
       <div class="legend">
         <span><i class="s"></i><span id="lgS">—</span></span>
@@ -323,6 +354,8 @@
           <dl class="specs" id="specC"></dl>
         </div>
       </div>
+      </div>
+    </div>
     </div>
   </div>
 
@@ -332,7 +365,7 @@
     <div class="dbody">
       <div class="grid2">
         <div class="field">
-          <label for="gpu">Graphics processor</label>
+          <label for="gpu" id="gpuLbl">Graphics processor</label>
           <select id="gpu">
             <option value="l4">NVIDIA L4 24 GB — 1.0×</option>
             <option value="r5060">RTX 5060 Laptop 8 GB — 1.0× (test machine, not a buy reference)</option>
@@ -386,6 +419,7 @@
       <p><b>Measured, not claimed.</b> The proof of concept ran continuously for three weeks on SM's own test machine, carrying eight cameras: three entrance counts and five per-person dwell, each also producing a heatmap from the same pass. Every figure here comes from timings on that machine.</p>
       <p><b>A planning estimate, not a quotation.</b> It is not a performance guarantee either. Sizing is done per property — an average across an estate sizes nothing, because a flagship mall can carry double the cameras of a typical one.</p>
       <p><b>Sized for production.</b> These figures describe the production platform, including the stream-handling layer built during implementation. The proof of concept was run to measure processing cost per camera, not at production camera density.</p>
+      <p><b>The Jetson figures are an estimate, not a measurement.</b> The edge option assumes about 3 tracked or 8 heatmap cameras per Jetson Orin Nano Super, taken from comparable hardware rather than timed on SM footage. One test unit on SM's own cameras should confirm it before anything is ordered. Raspberry Pi is not offered: the current model has no hardware decoder for H.264 video and no built-in AI accelerator, so it cannot carry several mall cameras per device.</p>
     </div>
   </details>
 
@@ -413,10 +447,23 @@
   var M={scope:91,count:12,flow:12,dwell:10};
   var $=function(id){return document.getElementById(id);};
   var lock=false;
+  var mode="server"; // "server" | "jetson": swaps only the video analytics tier
 
   function mult(){return GPUS[S.gpu].mult;}
   function costSampled(){return (MS1920/mult())/S.interval;}
   function costCont(){return (S.fps/S.stride)*(MS640/mult());}
+  // estimate, not measured: ~3 tracked or ~8 heatmap cameras per Orin Nano Super at 15.9 fps / stride 3 / 5 s. Replace with a measured figure after a test unit runs on SM footage.
+  // Independent of the GPU selector; uses the same headroom setting as the server.
+  function computeJetson(){
+    var trackedPer=3*(15.9/S.fps)*(S.stride/3), heatPer=8*(S.interval/5);
+    var tracked=M.count+M.flow+M.dwell, heatOnly=M.scope-tracked;
+    var tW=tracked/trackedPer, hW=heatOnly/heatPer, need=tW+hW, keep=1-S.headroom/100;
+    var units=Math.max(M.scope>0?1:0, Math.ceil(need/keep-1e-9));
+    var room=Math.max(0, units*keep-need);
+    return {trackedPer:trackedPer, heatPer:heatPer, tracked:tracked, heatOnly:heatOnly, tW:tW, hW:hW, need:need, units:units,
+      load:units>0?need/units:0, spare:Math.max(0,units-need),
+      spareS:Math.floor(room*heatPer+1e-9), spareC:Math.floor(room*trackedPer+1e-9)};
+  }
   function fmt(n,d){d=d||0;return n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});}
 
   function specList(id,rows){
@@ -466,6 +513,32 @@
     });
   }
 
+  function renderJetsonUnit(j){
+    var box=$("unitsA"); box.textContent="";
+    var u=document.createElement("div"); u.className="unit";
+    u.innerHTML='<div class="unit-head"><span class="unit-ic"><svg class="ic"><use href="#ic-chip"/></svg></span>'
+      +'<span class="qty num"></span><span class="unit-name"></span></div><dl class="specs" id="specJ"></dl><p class="unit-note"></p>';
+    u.querySelector(".qty").textContent=fmt(j.units);
+    var nm=u.querySelector(".unit-name");
+    nm.textContent="Edge AI unit — NVIDIA Jetson Orin Nano Super";
+    var sub=document.createElement("span"); sub.className="unit-sub";
+    sub.textContent="Runs the video analytics next to the cameras. One small device per few cameras.";
+    nm.appendChild(sub);
+    box.appendChild(u);
+    specList("specJ",[
+      ["Device","NVIDIA Jetson Orin Nano Super, 8 GB"],
+      ["Storage","NVMe SSD, 256 GB or more"],
+      ["Enclosure","Ventilated enclosure with cooling, mounted near the network switch"],
+      ["Power","PoE+ or DC supply, one per unit"],
+      ["Network","1 GbE, one switch port per unit, same network segment as the recorder"],
+      ["System","JetPack (Ubuntu based)"],
+      ["Carries",fmt(M.scope)+" sampled + "+fmt(j.tracked)+" tracked cameras across "+fmt(j.units)+" unit"+(j.units===1?"":"s")+", at "+Math.round(j.load*100)+"% load"],
+      ["Estimate","<em>Not yet measured on SM footage — confirm on one test unit before ordering</em>"]
+    ]);
+    var n=fmt(j.units), one=j.units===1;
+    u.querySelector(".unit-note").textContent="Needs "+n+" network port"+(one?"":"s")+" and "+n+" power point"+(one?"":"s")+" at the mall.";
+  }
+
   function compute(){
     var cont=M.count+M.flow+M.dwell;
     var sMs=M.scope*costSampled(), cMs=cont*costCont(), demand=sMs+cMs;
@@ -487,8 +560,86 @@
       storeGB:ev*86400*365*S.retention*S.bytes/1e9};
   }
 
+  function renderFixed(c){
+    var diskTB = Math.max(2, Math.ceil(c.storeGB*1.35/1000));
+
+    specList("specB",[
+      ["Processor","8 cores"],
+      ["Memory","32 GB"],
+      ["Storage","256 GB system, plus 500 GB event buffer"],
+      ["Graphics","None required"],
+      ["Network","1 GbE, mall network only"],
+      ["System","Ubuntu LTS"],
+      ["Buffer","Events queue locally through a link outage and backfill automatically"]
+    ]);
+    specList("specC",[
+      ["Processor","8–16 cores"],
+      ["Memory","64 GB"],
+      ["Storage",diskTB+" TB NVMe <em>— about "+fmt(c.storeGB)+" GB of events over "+S.retention+" year"+(S.retention===1?"":"s")+", with room to grow</em>"],
+      ["Network","1 GbE, mall network only"],
+      ["Database","PostgreSQL with TimescaleDB"],
+      ["System","Ubuntu LTS"],
+      ["Video","None stored here, or anywhere in this stack — recording stays on the existing NVR"]
+    ]);
+  }
+
+  function setMode(m){
+    mode=m;
+    var jet=m==="jetson";
+    $("modeServer").setAttribute("aria-selected",String(!jet)); $("modeServer").tabIndex=jet?-1:0;
+    $("modeJetson").setAttribute("aria-selected",String(jet)); $("modeJetson").tabIndex=jet?0:-1;
+    $("hwPanel").setAttribute("aria-labelledby",jet?"modeJetson":"modeServer");
+    $("kServers").textContent=jet?"Edge AI units":"Middleware servers";
+    $("kGpus").textContent=jet?"Network ports for the units":"GPU cards";
+    $("kAll").textContent=jet?"Machines on site, including 2 servers":"Machines on site";
+    $("barL").textContent=jet?"Edge unit capacity used":"Middleware capacity used";
+    $("gpu").disabled=jet;
+    $("gpuLbl").textContent=jet?"Graphics processor — not used by Jetson units":"Graphics processor";
+    try{ history.replaceState(null,"",jet?"#jetson":location.pathname+location.search); }catch(e){}
+    render();
+  }
+
+  function renderJetson(c){
+    var j=computeJetson(), cap=j.units||1;
+    $("tServers").textContent=fmt(j.units);
+    $("tGpus").textContent=fmt(j.units);
+    $("tAll").textContent=fmt(j.units+2);
+
+    $("segS").style.width=(100*j.hW/cap)+"%";
+    $("segC").style.width=(100*j.tW/cap)+"%";
+    var u=Math.round(j.load*100);
+    $("pct").textContent=u+"%";
+    var cls=j.load>0.95?"crit":(j.load>0.85?"warn":"ok");
+    $("pct").style.color="var(--"+cls+")";
+
+    $("lgS").textContent="Heatmaps and zones — "+Math.round(100*j.hW/cap)+"%";
+    $("lgC").textContent="Continuous tracking — "+Math.round(100*j.tW/cap)+"%";
+    $("lgH").textContent="Spare — "+Math.round(100*j.spare/cap)+"%";
+
+    var v=$("verdict");
+    v.className="verdict "+cls;
+    if(j.need<=0){ v.textContent="Nothing selected — add cameras above."; }
+    else if(cls==="crit"){ v.textContent="Over-subscribed. Add a unit, or move cameras off continuous tracking."; }
+    else if(cls==="warn"){ v.textContent="Running close to the limit. Room for about "+fmt(j.spareS)+" more sampled cameras, or "+fmt(j.spareC)+" more tracked."; }
+    else { v.textContent="Sized with margin. Room for about "+fmt(j.spareS)+" more sampled cameras, or "+fmt(j.spareC)+" more tracked, before another unit is needed."; }
+
+    renderJetsonUnit(j);
+    renderFixed(c);
+
+    var f2=function(n){return n.toLocaleString("en-US",{maximumFractionDigits:2});};
+    var tq="3 × 15.9 ÷ "+fmt(S.fps,1)+" fps × "+S.stride+" ÷ 3", hq="8 × "+S.interval+" s ÷ 5", w=Math.max(tq.length,hq.length)+1;
+    $("formula").textContent=
+      "edge AI unit estimate, not yet measured on SM footage\n"
+      +"  about 3 tracked or 8 heatmap-only cameras per unit at 15.9 fps, every 3rd frame, 5 s looks\n\n"
+      +"  tracked per unit   "+tq.padEnd(w)+" = "+f2(j.trackedPer)+" cameras\n"
+      +"  heatmap per unit   "+hq.padEnd(w)+" = "+f2(j.heatPer)+" cameras\n\n"
+      +"  this property      "+fmt(j.tracked)+" tracked ÷ "+f2(j.trackedPer)+" + "+fmt(j.heatOnly)+" heatmap only ÷ "+f2(j.heatPer)+" = "+fmt(j.need,1)+" units of work\n"
+      +"  units = "+fmt(j.need,1)+" ÷ "+((100-S.headroom)/100).toFixed(2)+" headroom, round up = "+fmt(j.units)+" units";
+  }
+
   function render(){
     var c=compute(), cap=c.cap||1;
+    if(mode==="jetson"){ renderJetson(c); fitSticky(); return; }
 
     $("tServers").textContent=fmt(c.servers);
     $("tGpus").textContent=fmt(c.gpus);
@@ -513,26 +664,7 @@
     else { v.textContent="Sized with margin. Room for about "+fmt(c.spareS)+" more sampled cameras, or "+fmt(c.spareC)+" more tracked, before another card is needed."; }
 
     renderUnits(c);
-    var diskTB = Math.max(2, Math.ceil(c.storeGB*1.35/1000));
-
-    specList("specB",[
-      ["Processor","8 cores"],
-      ["Memory","32 GB"],
-      ["Storage","256 GB system, plus 500 GB event buffer"],
-      ["Graphics","None required"],
-      ["Network","1 GbE, mall network only"],
-      ["System","Ubuntu LTS"],
-      ["Buffer","Events queue locally through a link outage and backfill automatically"]
-    ]);
-    specList("specC",[
-      ["Processor","8–16 cores"],
-      ["Memory","64 GB"],
-      ["Storage",diskTB+" TB NVMe <em>— about "+fmt(c.storeGB)+" GB of events over "+S.retention+" year"+(S.retention===1?"":"s")+", with room to grow</em>"],
-      ["Network","1 GbE, mall network only"],
-      ["Database","PostgreSQL with TimescaleDB"],
-      ["System","Ubuntu LTS"],
-      ["Video","None stored here, or anywhere in this stack — recording stays on the existing NVR"]
-    ]);
+    renderFixed(c);
 
 
     $("formula").textContent=
@@ -543,7 +675,15 @@
       +"  one card delivers 1,000 ms of work per second\n"
       +"  cards    = round up ( "+fmt(c.demand)+" ÷ "+((100-S.headroom)/100).toFixed(2)+" ÷ 1,000 ) = "+fmt(c.gpus>0?Math.ceil((c.demand/(1-S.headroom/100))/BUDGET):0)+"\n"
       +"  machines = round up ( cards ÷ "+MAX_CARDS+" ) = "+fmt(c.servers)+"   ("+c.split.join(" + ")+" cards)";
+    fitSticky();
   }
+
+  // Pin whichever pane fits the window (usually the sliders), so the other can scroll beside it;
+  // a pane taller than the window scrolls with the page so nothing is cut off.
+  var panes=document.querySelectorAll(".pane");
+  function fitSticky(){ panes.forEach(function(p){ p.classList.toggle("stick", p.offsetHeight+32<=window.innerHeight); }); }
+  window.addEventListener("resize",fitSticky);
+  if(window.ResizeObserver) panes.forEach(function(p){ new ResizeObserver(fitSticky).observe(p); });
 
   // --- pair a range + number input to one model key, capped at scope ---
   function pair(key, rangeId, numId){
@@ -581,11 +721,10 @@
     $("ofA").textContent="of "+fmt(M.scope);
     $("ofB").textContent="of "+fmt(M.scope);
     $("ofC").textContent="of "+fmt(M.scope);
-    $("trackNote").textContent = used===0
-      ? "None assigned yet. All "+fmt(M.scope)+" cameras are on the sampled pass only."
-      : fmt(used)+" of "+fmt(M.scope)+" cameras tracked continuously · "
-        +fmt(left)+" on the sampled pass only."
-        +(left===0 ? " Every camera is assigned." : "");
+    $("trackNote").textContent =
+      (M.scope===1 ? "The 1 camera gets" : "All "+fmt(M.scope)+" cameras get")+" heatmap and zone analytics. On top of that: "
+      +fmt(M.count)+" people counting · "+fmt(M.flow)+" direction of travel · "+fmt(M.dwell)+" per-person dwell. "
+      +fmt(left)+(left===1?" camera is":" cameras are")+" heatmap only.";
   }
 
   var lastPreset="typical";
@@ -638,8 +777,19 @@
   setting("retention","retention",parseFloat,0.5,10);
   setting("bytes","bytes",function(v){return parseInt(v,10);},64,8192);
 
+  $("modeServer").addEventListener("click",function(){ setMode("server"); });
+  $("modeJetson").addEventListener("click",function(){ setMode("jetson"); });
+  $("modeServer").parentNode.addEventListener("keydown",function(e){
+    if(e.key!=="ArrowLeft"&&e.key!=="ArrowRight"&&e.key!=="Home"&&e.key!=="End") return;
+    e.preventDefault();
+    var next=(e.key==="Home")?"server":(e.key==="End")?"jetson":(mode==="jetson"?"server":"jetson");
+    setMode(next); $(next==="jetson"?"modeJetson":"modeServer").focus();
+  });
+
   clampSubs();
-  render();
+  var startJetson=false;
+  try{ startJetson=location.hash==="#jetson"; }catch(e){}
+  if(startJetson) setMode("jetson"); else render();
 })();
 </script>
 
